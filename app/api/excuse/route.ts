@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const dynamic = "force-dynamic";
 
@@ -7,35 +7,34 @@ export async function POST(req: NextRequest) {
   try {
     const { input, tone } = await req.json();
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: "OpenAI API key not configured" },
+        { error: "Gemini API key not configured" },
         { status: 500 }
       );
     }
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an excuse generator. The user will describe a situation they need an excuse for. Generate a single, creative, believable, and detailed excuse tailored to their specific situation. Include backstory, specific details, and make it sound authentic. Reply with ONLY the excuse text — no quotes, no prefix, no explanation.",
-        },
+    const result = await model.generateContent({
+      contents: [
         {
           role: "user",
-          content: `I need a ${tone} excuse for this situation: ${input}. Make it 3-5 sentences with vivid details and a convincing narrative.`,
+          parts: [
+            {
+              text: `You are an excuse generator. Generate a single, creative, believable, and detailed excuse. Include backstory, specific details, and make it sound authentic. Reply with ONLY the excuse text — no quotes, no prefix, no explanation.\n\nI need a ${tone} excuse for this situation: ${input}. Make it 3-5 sentences with vivid details and a convincing narrative.`,
+            },
+          ],
         },
       ],
-      max_tokens: 250,
-      temperature: 0.9,
+      generationConfig: {
+        maxOutputTokens: 300,
+        temperature: 0.9,
+      },
     });
 
-    const excuse = completion.choices[0]?.message?.content?.trim() ?? "";
+    const excuse = result.response.text().trim();
 
     return NextResponse.json({ excuse });
   } catch (error: unknown) {
