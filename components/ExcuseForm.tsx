@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from "react";
 import {
-  generateExcuse,
-  situations,
+  generateFromInput,
   tones,
-  type Situation,
   type Tone,
 } from "@/lib/excuses";
 
 export default function ExcuseForm() {
-  const [situation, setSituation] = useState<Situation>("late");
-  const [tone, setTone] = useState<Tone>("formal");
+  const [input, setInput] = useState("");
+  const [tone, setTone] = useState<Tone>("casual");
   const [excuse, setExcuse] = useState("");
   const [copied, setCopied] = useState(false);
   const [animate, setAnimate] = useState(false);
@@ -29,6 +27,7 @@ export default function ExcuseForm() {
   }, [excuse]);
 
   const handleGenerate = async () => {
+    if (!input.trim()) return;
     setAnimate(false);
     setLoading(true);
     setCopied(false);
@@ -37,19 +36,17 @@ export default function ExcuseForm() {
       const res = await fetch("/api/excuse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ situation, tone }),
+        body: JSON.stringify({ input, tone }),
       });
       const data = await res.json();
 
       if (data.excuse) {
         setExcuse(data.excuse);
       } else {
-        // Fallback to local templates
-        setExcuse(generateExcuse(situation, tone));
+        setExcuse(generateFromInput(input, tone));
       }
     } catch {
-      // Fallback to local templates on network error
-      setExcuse(generateExcuse(situation, tone));
+      setExcuse(generateFromInput(input, tone));
     } finally {
       setLoading(false);
       setAnimate(true);
@@ -64,26 +61,24 @@ export default function ExcuseForm() {
 
   return (
     <div className="space-y-6">
-      {/* Situation */}
+      {/* Input */}
       <div>
         <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-          What happened?
+          Describe your situation
         </label>
-        <div className="flex flex-wrap gap-2">
-          {situations.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => setSituation(s.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                situation === s.value
-                  ? "bg-indigo-600 text-white shadow-lg scale-105"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleGenerate();
+            }
+          }}
+          placeholder="e.g. I need to skip my friend's birthday party this weekend..."
+          rows={3}
+          className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none transition-all"
+        />
       </div>
 
       {/* Tone */}
@@ -111,7 +106,7 @@ export default function ExcuseForm() {
       {/* Generate Button */}
       <button
         onClick={handleGenerate}
-        disabled={loading}
+        disabled={loading || !input.trim()}
         className="w-full py-3 px-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading ? "⏳ Generating..." : "✨ Generate Excuse"}

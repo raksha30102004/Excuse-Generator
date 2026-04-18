@@ -51,11 +51,30 @@ export function generateExcuse(situation: Situation, tone: Tone): string {
   return options[Math.floor(Math.random() * options.length)];
 }
 
-export const situations: { value: Situation; label: string }[] = [
-  { value: "late", label: "🕐 Running Late" },
-  { value: "deadline", label: "📅 Missed Deadline" },
-  { value: "event", label: "🎉 Skip an Event" },
+const keywordMap: { keywords: string[]; situation: Situation }[] = [
+  { keywords: ["late", "tardy", "behind", "delayed", "overslept", "woke up", "alarm", "traffic", "on time"], situation: "late" },
+  { keywords: ["deadline", "assignment", "homework", "project", "submit", "finish", "complete", "due", "report", "task", "work"], situation: "deadline" },
+  { keywords: ["event", "party", "meeting", "dinner", "wedding", "attend", "invite", "gathering", "hangout", "go", "come", "skip", "cancel", "bail"], situation: "event" },
 ];
+
+export function detectSituation(input: string): Situation {
+  const lower = input.toLowerCase();
+  let bestMatch: Situation = "event";
+  let bestScore = 0;
+  for (const entry of keywordMap) {
+    const score = entry.keywords.filter((kw) => lower.includes(kw)).length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = entry.situation;
+    }
+  }
+  return bestMatch;
+}
+
+export function generateFromInput(input: string, tone: Tone): string {
+  const situation = detectSituation(input);
+  return generateExcuse(situation, tone);
+}
 
 export const tones: { value: Tone; label: string }[] = [
   { value: "formal", label: "👔 Formal" },

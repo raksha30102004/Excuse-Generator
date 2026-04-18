@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const { situation, tone } = await req.json();
+    const { input, tone } = await req.json();
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
         {
           role: "system",
           content:
-            "You are an excuse generator. Generate a single, creative, believable, and detailed excuse. Include backstory, specific details, and make it sound authentic. Reply with ONLY the excuse text — no quotes, no prefix, no explanation.",
+            "You are an excuse generator. The user will describe a situation they need an excuse for. Generate a single, creative, believable, and detailed excuse tailored to their specific situation. Include backstory, specific details, and make it sound authentic. Reply with ONLY the excuse text — no quotes, no prefix, no explanation.",
         },
         {
           role: "user",
-          content: `Generate a ${tone} excuse for: ${situation}. Make it 3-5 sentences with vivid details and a convincing narrative.`,
+          content: `I need a ${tone} excuse for this situation: ${input}. Make it 3-5 sentences with vivid details and a convincing narrative.`,
         },
       ],
       max_tokens: 250,
